@@ -1,15 +1,21 @@
+import re
+
 from pullenti.morph.MorphLang import MorphLang
 from pullenti.ner.ProcessorService import ProcessorService
 from pullenti.ner.SourceOfAnalysis import SourceOfAnalysis
+from pullenti.ner.core.MiscHelper import MiscHelper
 from pullenti.ner.geo.GeoAnalyzer import GeoAnalyzer
 from pullenti.ner.address.AddressAnalyzer import AddressAnalyzer
 from pullenti.ner.address.AddressReferent import AddressReferent
+from pullenti.ner.address.StreetReferent import StreetReferent
 
 ProcessorService.initialize(MorphLang.RU)
 GeoAnalyzer.initialize()
 AddressAnalyzer.initialize()
 
 ANALYZERS = ",".join([GeoAnalyzer.ANALYZER_NAME, AddressAnalyzer.ANALYZER_NAME])
+
+NON_BMP = re.compile("[\U00010000-\U0010FFFF]")
 
 FIELDS = {
     "zip": AddressReferent.ATTR_ZIP,
@@ -37,16 +43,23 @@ def geo_chain(geo):
 
 def address_geo(address):
     geo = address.get_slot_value(AddressReferent.ATTR_GEO)
-    if geo is None:
-        for street in address.streets:
-            geo = street.get_slot_value("GEO")
-            if geo is not None:
-                break
-    return geo
+    if geo is not None:
+        return geo
+    for street in address.streets:
+        if street.city is not None:
+            return street.city
+    return None
 
 
-def to_dict(address, text):
-    occurrence = address.occurrence[0]
+def street_name(street):
+    parts = [street.number, street.sec_number]
+    name = street.get_string_value(StreetReferent.ATTR_NAME)
+    if name is not None:
+        parts.append(MiscHelper.convert_first_char_upper_and_other_lower(name))
+    return " ".join(p for p in parts if p) or None
+
+
+def to_dict(address, text, occurrence):
     result = {
         "start": occurrence.begin_char,
         "stop": occurrence.end_char + 1,
@@ -54,7 +67,7 @@ def to_dict(address, text):
         "normal": address.to_string(False),
         "geo": geo_chain(address_geo(address)),
         "streets": [
-            {"type": s.typs[0] if s.typs else None, "name": s.names[0].title() if s.names else None}
+            {"type": s.typs[0] if s.typs else None, "name": street_name(s)}
             for s in address.streets
         ],
     }
@@ -67,5 +80,11 @@ def to_dict(address, text):
 
 def extract_addresses(text):
     processor = ProcessorService.create_specific_processor(ANALYZERS)
-    result = processor.process(SourceOfAnalysis(text))
-    return [to_dict(e, text) for e in result.entities if isinstance(e, AddressReferent)]
+    result = processor.process(SourceOfAnalysis(NON_BMP.sub("�", text)))
+    addresses = [
+        to_dict(entity, text, occurrence)
+        for entity in result.entities
+        if isinstance(entity, AddressReferent)
+        for occurrence in entity.occurrence
+    ]
+    return sorted(addresses, key=lambda a: a["start"])

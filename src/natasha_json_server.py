@@ -1,5 +1,7 @@
+import os
+
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from natasha import (
     Segmenter,
     MorphVocab,
@@ -25,24 +27,23 @@ names_extractor = NamesExtractor(morph_vocab)
 dates_extractor = DatesExtractor(morph_vocab)
 money_extractor = MoneyExtractor(morph_vocab)
 
+MAX_TEXT_LENGTH = int(os.environ.get("MAX_TEXT_LENGTH", "20000"))
+
 app = FastAPI(title="natasha-server")
 
 
 class Request(BaseModel):
-    data: str
+    data: str = Field(max_length=MAX_TEXT_LENGTH)
     tokens: bool = False
 
 
-def fact_dict(fact):
-    if fact is None:
-        return None
-    data = fact.as_dict if hasattr(fact, "as_dict") else fact.as_json
+def drop_none(data):
     return {k: v for k, v in data.items() if v is not None}
 
 
 def matches(extractor, text):
     return [
-        {"start": m.start, "stop": m.stop, "text": text[m.start:m.stop], "fact": fact_dict(m.fact)}
+        {"start": m.start, "stop": m.stop, "text": text[m.start:m.stop], "fact": drop_none(m.fact.as_json)}
         for m in extractor(text)
     ]
 
@@ -50,11 +51,18 @@ def matches(extractor, text):
 def parse(text, with_tokens):
     doc = Doc(text)
     doc.segment(segmenter)
+    if not doc.tokens:
+        result = {"spans": [], "names": [], "addresses": [], "dates": [], "money": []}
+        if with_tokens:
+            result["tokens"] = []
+        return result
+
     doc.tag_morph(morph_tagger)
-    doc.parse_syntax(syntax_parser)
     doc.tag_ner(ner_tagger)
-    for token in doc.tokens:
-        token.lemmatize(morph_vocab)
+    if with_tokens:
+        doc.parse_syntax(syntax_parser)
+        for token in doc.tokens:
+            token.lemmatize(morph_vocab)
 
     spans = []
     for span in doc.spans:
@@ -67,7 +75,7 @@ def parse(text, with_tokens):
             "stop": span.stop,
             "text": span.text,
             "normal": span.normal,
-            "fact": fact_dict(span.fact),
+            "fact": drop_none(span.fact.as_dict) if span.fact else None,
         })
 
     result = {

@@ -2,7 +2,7 @@
 
 ```
 docker build -t natasha-server .
-docker run -d -p 127.0.0.1:10101:8080 --restart unless-stopped natasha-server
+docker run -d -p 127.0.0.1:10101:8080 -m 1g --restart unless-stopped natasha-server
 ```
 
 # Dev server
@@ -61,3 +61,5 @@ Swagger UI: http://localhost:8080/docs
 ```
 
 Addresses are parsed with [Pullenti](http://pullenti.ru/), names, dates and money with natasha. Pullenti is free for non-commercial use only, commercial use requires a license.
+
+Max text length is 20000 chars, override with `MAX_TEXT_LENGTH` env.
