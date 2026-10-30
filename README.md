@@ -45,8 +45,19 @@ Swagger UI: http://localhost:8080/docs
     {"first": "Андрей", "last": "Шевченко", "middle": null}
   ],
   "spans": [{"type": "PER", "start": 0, "stop": 14, "text": "...", "normal": "...", "fact": {...}}],
-  "addresses": [...],
+  "addresses": [
+    {
+      "start": 10, "stop": 81,
+      "text": "420111, Республика Татарстан, г Казань, ул Баумана, д 15, корп 2, кв 47",
+      "normal": "улица Баумана д.15 корп.2 кв.47; Казань; 420111",
+      "geo": [{"type": "республика", "name": "Татарстан"}, {"type": "город", "name": "Казань"}],
+      "streets": [{"type": "улица", "name": "Баумана"}],
+      "zip": "420111", "house": "15", "corpus": "2", "flat": "47"
+    }
+  ],
   "dates": [...],
   "money": [...]
 }
 ```
+
+Addresses are parsed with [Pullenti](http://pullenti.ru/), names, dates and money with natasha. Pullenti is free for non-commercial use only, commercial use requires a license.

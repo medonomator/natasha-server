@@ -8,11 +8,12 @@ from natasha import (
     NewsSyntaxParser,
     NewsNERTagger,
     NamesExtractor,
-    AddrExtractor,
     DatesExtractor,
     MoneyExtractor,
     Doc,
 )
+
+from addresses import extract_addresses
 
 segmenter = Segmenter()
 morph_vocab = MorphVocab()
@@ -21,7 +22,6 @@ morph_tagger = NewsMorphTagger(emb)
 syntax_parser = NewsSyntaxParser(emb)
 ner_tagger = NewsNERTagger(emb)
 names_extractor = NamesExtractor(morph_vocab)
-addr_extractor = AddrExtractor(morph_vocab)
 dates_extractor = DatesExtractor(morph_vocab)
 money_extractor = MoneyExtractor(morph_vocab)
 
@@ -81,7 +81,7 @@ def parse(text, with_tokens):
             for s in spans
             if s["type"] == "PER" and s["fact"]
         ],
-        "addresses": matches(addr_extractor, text),
+        "addresses": extract_addresses(text),
         "dates": matches(dates_extractor, text),
         "money": matches(money_extractor, text),
     }
