@@ -1,12 +1,10 @@
-FROM python:3.5.5-jessie
+FROM python:3.12-slim
 
-LABEL maintainer="<>"
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-USER root
-
-RUN apt-get -y install wget git
-RUN pip install -U natasha
-
+COPY src/ /app/
+USER nobody
 EXPOSE 8080
-COPY src/ /opt/
-CMD ["/usr/local/bin/python3", "/opt/natasha_json_server.py"]
+CMD ["uvicorn", "natasha_json_server:app", "--host", "0.0.0.0", "--port", "8080"]
