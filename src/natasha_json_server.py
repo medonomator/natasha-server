@@ -72,7 +72,15 @@ def parse(text, with_tokens):
 
     result = {
         "spans": spans,
-        "names": [s for s in spans if s["type"] == "PER"],
+        "names": [
+            {
+                "first": s["fact"].get("first"),
+                "last": s["fact"].get("last"),
+                "middle": s["fact"].get("middle"),
+            }
+            for s in spans
+            if s["type"] == "PER" and s["fact"]
+        ],
         "addresses": matches(addr_extractor, text),
         "dates": matches(dates_extractor, text),
         "money": matches(money_extractor, text),

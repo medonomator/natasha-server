@@ -34,3 +34,19 @@ Content-Type: application/json
 Pass `"tokens": true` to also get lemmas, POS tags, morphology and the syntax tree for every token.
 
 Swagger UI: http://localhost:8080/docs
+
+# Response
+
+```
+{
+  "original_data": {"data": "...", "tokens": false},
+  "names": [
+    {"first": "Сергей", "last": "Кириенко", "middle": "Владиленович"},
+    {"first": "Андрей", "last": "Шевченко", "middle": null}
+  ],
+  "spans": [{"type": "PER", "start": 0, "stop": 14, "text": "...", "normal": "...", "fact": {...}}],
+  "addresses": [...],
+  "dates": [...],
+  "money": [...]
+}
+```
